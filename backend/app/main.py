@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
+import asyncio
 import os
 
 from app.config import settings
@@ -9,10 +10,19 @@ from app.routes import videos, websocket
 from app.services.storage import cleanup_expired_files
 
 
+async def _periodic_cleanup(interval: int = 300):
+    """Purge expired downloads every `interval` seconds (default 5 min)."""
+    while True:
+        await asyncio.sleep(interval)
+        cleanup_expired_files()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     cleanup_expired_files()
+    task = asyncio.create_task(_periodic_cleanup())
     yield
+    task.cancel()
     cleanup_expired_files()
 
 

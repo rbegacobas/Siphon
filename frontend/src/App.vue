@@ -101,25 +101,59 @@
           <div
             v-for="(f, idx) in metadata.video_formats"
             :key="f.format_id"
-            class="format-row"
+            :class="['format-row', { 'row-active': activeFormatId === f.format_id }]"
+            :ref="el => { if (activeFormatId === f.format_id) activeRowEl = el }"
           >
-            <div class="col-quality" :data-meta="(f.ext || 'mp4').toUpperCase() + (f.filesize ? ' · ~' + formatSize(f.filesize) : '')">
-              <span :class="['quality-badge', { 'badge-accent': idx === 0 }]">
-                {{ extractRes(f.label) }}
-              </span>
-              <span v-if="idx === 0" class="best-badge">BEST</span>
+            <div class="row-main">
+              <div class="col-quality" :data-meta="(f.ext || 'mp4').toUpperCase() + (f.filesize ? ' · ~' + formatSize(f.filesize) : '')">
+                <span :class="['quality-badge', { 'badge-accent': idx === 0 }]">
+                  {{ extractRes(f.label) }}
+                </span>
+                <span v-if="idx === 0" class="best-badge">BEST</span>
+              </div>
+              <span class="col-format">{{ (f.ext || 'mp4').toUpperCase() }}</span>
+              <span class="col-size">{{ f.filesize ? '~' + formatSize(f.filesize) : '—' }}</span>
+              <div class="col-action">
+                <button
+                  v-if="activeFormatId !== f.format_id"
+                  :class="['btn-dl', { primary: idx === 0 }]"
+                  :disabled="downloading"
+                  @click="handleVideoDownload(f)"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                  Download
+                </button>
+                <span v-else-if="job && job.status !== 'completed' && job.status !== 'failed'" class="inline-status">
+                  <span class="spinner"></span>
+                  <span class="inline-pct">{{ Math.round(job.progress) }}%</span>
+                </span>
+              </div>
             </div>
-            <span class="col-format">{{ (f.ext || 'mp4').toUpperCase() }}</span>
-            <span class="col-size">{{ f.filesize ? '~' + formatSize(f.filesize) : '—' }}</span>
-            <div class="col-action">
-              <button
-                :class="['btn-dl', { primary: idx === 0 }]"
-                :disabled="downloading"
-                @click="handleVideoDownload(f)"
+            <!-- Inline progress for active row -->
+            <div v-if="activeFormatId === f.format_id && job" class="inline-progress">
+              <div class="progress-label">
+                <span class="prog-text">{{ job.message || 'Processing...' }}</span>
+                <span class="prog-pct">{{ Math.round(job.progress) }}%</span>
+              </div>
+              <div class="progress-bar-bg">
+                <div class="progress-bar-fill" :style="{ width: job.progress + '%' }"></div>
+              </div>
+              <div v-if="job.speed || job.eta" class="progress-meta">
+                <span v-if="job.speed">{{ job.speed }}</span>
+                <span v-if="job.eta">ETA: {{ job.eta }}</span>
+              </div>
+              <a
+                v-if="job.status === 'completed'"
+                :href="downloadUrl"
+                class="btn-download-ready"
+                download
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
-                Download
-              </button>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                Save File {{ job.filesize ? `(${formatSize(job.filesize)})` : '' }}
+              </a>
+              <p v-if="job.status === 'failed'" class="error-text" style="margin-top: 8px;">
+                {{ job.message }}
+              </p>
             </div>
           </div>
         </div>
@@ -135,58 +169,62 @@
           <div
             v-for="(f, idx) in metadata.audio_formats"
             :key="f.format_id"
-            class="format-row"
+            :class="['format-row', { 'row-active': activeFormatId === f.format_id }]"
+            :ref="el => { if (activeFormatId === f.format_id) activeRowEl = el }"
           >
-            <div class="col-quality" :data-meta="(f.ext || 'm4a').toUpperCase() + (f.filesize ? ' · ~' + formatSize(f.filesize) : '')">
-              <span :class="['quality-badge', { 'badge-accent': idx === 0 }]">
-                {{ f.abr ? Math.round(f.abr) + 'kbps' : f.ext?.toUpperCase() }}
-              </span>
-              <span v-if="idx === 0" class="best-badge">BEST</span>
+            <div class="row-main">
+              <div class="col-quality" :data-meta="(f.ext || 'm4a').toUpperCase() + (f.filesize ? ' · ~' + formatSize(f.filesize) : '')">
+                <span :class="['quality-badge', { 'badge-accent': idx === 0 }]">
+                  {{ f.abr ? Math.round(f.abr) + 'kbps' : f.ext?.toUpperCase() }}
+                </span>
+                <span v-if="idx === 0" class="best-badge">BEST</span>
+              </div>
+              <span class="col-format">{{ (f.ext || 'm4a').toUpperCase() }}</span>
+              <span class="col-size">{{ f.filesize ? '~' + formatSize(f.filesize) : '—' }}</span>
+              <div class="col-action">
+                <button
+                  v-if="activeFormatId !== f.format_id"
+                  :class="['btn-dl', { primary: idx === 0 }]"
+                  :disabled="downloading"
+                  @click="handleAudioDownload(f)"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                  Download
+                </button>
+                <span v-else-if="job && job.status !== 'completed' && job.status !== 'failed'" class="inline-status">
+                  <span class="spinner"></span>
+                  <span class="inline-pct">{{ Math.round(job.progress) }}%</span>
+                </span>
+              </div>
             </div>
-            <span class="col-format">{{ (f.ext || 'm4a').toUpperCase() }}</span>
-            <span class="col-size">{{ f.filesize ? '~' + formatSize(f.filesize) : '—' }}</span>
-            <div class="col-action">
-              <button
-                :class="['btn-dl', { primary: idx === 0 }]"
-                :disabled="downloading"
-                @click="handleAudioDownload(f)"
+            <!-- Inline progress for active row -->
+            <div v-if="activeFormatId === f.format_id && job" class="inline-progress">
+              <div class="progress-label">
+                <span class="prog-text">{{ job.message || 'Processing...' }}</span>
+                <span class="prog-pct">{{ Math.round(job.progress) }}%</span>
+              </div>
+              <div class="progress-bar-bg">
+                <div class="progress-bar-fill" :style="{ width: job.progress + '%' }"></div>
+              </div>
+              <div v-if="job.speed || job.eta" class="progress-meta">
+                <span v-if="job.speed">{{ job.speed }}</span>
+                <span v-if="job.eta">ETA: {{ job.eta }}</span>
+              </div>
+              <a
+                v-if="job.status === 'completed'"
+                :href="downloadUrl"
+                class="btn-download-ready"
+                download
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
-                Download
-              </button>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                Save File {{ job.filesize ? `(${formatSize(job.filesize)})` : '' }}
+              </a>
+              <p v-if="job.status === 'failed'" class="error-text" style="margin-top: 8px;">
+                {{ job.message }}
+              </p>
             </div>
           </div>
         </div>
-      </div>
-
-      <!-- Download Progress -->
-      <div v-if="job" class="progress-section">
-        <div class="progress-label">
-          <span class="prog-text">{{ job.message || 'Processing...' }}</span>
-          <span class="prog-pct">{{ Math.round(job.progress) }}%</span>
-        </div>
-        <div class="progress-bar-bg">
-          <div class="progress-bar-fill" :style="{ width: job.progress + '%' }"></div>
-        </div>
-        <div v-if="job.speed || job.eta" class="progress-meta">
-          <span v-if="job.speed">{{ job.speed }}</span>
-          <span v-if="job.eta">ETA: {{ job.eta }}</span>
-        </div>
-
-        <!-- Download link when complete -->
-        <a
-          v-if="job.status === 'completed'"
-          :href="downloadUrl"
-          class="btn-download-ready"
-          download
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
-          Save File {{ job.filesize ? `(${formatSize(job.filesize)})` : '' }}
-        </a>
-
-        <p v-if="job.status === 'failed'" class="error-text" style="margin-top: 8px;">
-          {{ job.message }}
-        </p>
       </div>
     </main>
 
@@ -268,7 +306,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, nextTick } from 'vue'
 import { useApi } from './composables/useApi.js'
 
 const { extractMetadata, startDownload, getDownloadUrl, connectWebSocket } = useApi()
@@ -280,6 +318,8 @@ const metadata = ref(null)
 const tab = ref('video')
 const downloading = ref(false)
 const menuOpen = ref(false)
+const activeFormatId = ref(null)
+const activeRowEl = ref(null)
 
 const job = ref(null)
 const downloadUrl = ref('')
@@ -290,6 +330,7 @@ async function handleExtract() {
   error.value = ''
   metadata.value = null
   job.value = null
+  activeFormatId.value = null
   loading.value = true
 
   try {
@@ -302,6 +343,7 @@ async function handleExtract() {
 }
 
 function handleVideoDownload(format) {
+  activeFormatId.value = format.format_id
   const bestAudio = metadata.value.audio_formats[0]
   doDownload({
     url: url.value.trim(),
@@ -313,6 +355,7 @@ function handleVideoDownload(format) {
 }
 
 function handleAudioDownload(format) {
+  activeFormatId.value = format.format_id
   doDownload({
     url: url.value.trim(),
     download_type: 'audio',
@@ -325,6 +368,12 @@ async function doDownload(payload) {
   downloading.value = true
   error.value = ''
   job.value = { status: 'pending', progress: 0, message: 'Queued...' }
+
+  nextTick(() => {
+    if (activeRowEl.value) {
+      activeRowEl.value.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  })
 
   try {
     const result = await startDownload(payload)
@@ -710,13 +759,59 @@ body {
 /* Format Rows */
 .format-row {
   display: flex;
-  align-items: center;
-  padding: 14px 16px;
+  flex-direction: column;
+  padding: 0;
   border-bottom: 1px solid var(--border);
 }
 
 .format-row:last-child {
   border-bottom: none;
+}
+
+.format-row .row-main {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+}
+
+.format-row.row-active {
+  background: var(--accent-light);
+  border-radius: 6px;
+}
+
+/* Inline status (spinner + %) shown in the action column */
+.inline-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--bg-tertiary);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.inline-pct {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Inline progress panel under active row */
+.inline-progress {
+  padding: 10px 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .col-quality {
@@ -1208,6 +1303,10 @@ body {
 
   /* Format rows: horizontal badge+meta on left, button on right */
   .format-row {
+    padding: 0;
+  }
+
+  .format-row .row-main {
     padding: 12px;
     justify-content: space-between;
     align-items: center;
@@ -1221,7 +1320,7 @@ body {
   .col-format, .col-size { display: none; }
 
   /* Show combined meta on mobile via pseudo or inline */
-  .format-row .col-quality::after {
+  .format-row .row-main .col-quality::after {
     content: attr(data-meta);
     font-size: 12px;
     font-weight: 400;
