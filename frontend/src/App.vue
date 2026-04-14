@@ -7,6 +7,10 @@
         <a href="#how" class="nav-link" @click.prevent="scrollTo('how')">How it Works</a>
         <a href="#faq" class="nav-link" @click.prevent="scrollTo('faq')">FAQ</a>
         <a href="#about" class="nav-link" @click.prevent="scrollTo('about')">About</a>
+        <a href="https://ko-fi.com/rbegacobas" target="_blank" rel="noopener" class="nav-donate">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" x2="6" y1="1" y2="4"/><line x1="10" x2="10" y1="1" y2="4"/><line x1="14" x2="14" y1="1" y2="4"/></svg>
+          Donate
+        </a>
       </div>
     </nav>
 
@@ -254,14 +258,7 @@
 
     <!-- Footer -->
     <footer class="footer">
-      <div class="footer-inner">
-        <p>Built with care. No tracking. No ads.</p>
-        <span class="footer-dot">&middot;</span>
-        <a href="https://ko-fi.com/rbegacobas" target="_blank" rel="noopener" class="donate-link">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" x2="6" y1="1" y2="4"/><line x1="10" x2="10" y1="1" y2="4"/><line x1="14" x2="14" y1="1" y2="4"/></svg>
-          Support this project
-        </a>
-      </div>
+      <p>Built with care. No tracking. No ads.</p>
     </footer>
   </div>
 </template>
@@ -459,6 +456,25 @@ body {
 
 .nav-link:hover {
   color: var(--text-primary);
+}
+
+.nav-donate {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: all 0.15s;
+}
+
+.nav-donate:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 /* Hero */
@@ -1037,29 +1053,6 @@ body {
   border-top: 1px solid var(--border);
 }
 
-.footer-inner {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.footer-dot {
-  color: var(--text-tertiary);
-}
-
-.donate-link {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: var(--text-tertiary);
-  text-decoration: none;
-  transition: color 0.15s;
-}
-
-.donate-link:hover {
-  color: var(--accent);
-}
-
 /* Responsive */
 @media (max-width: 800px) {
   .nav { padding: 0 20px; }
@@ -1097,6 +1090,9 @@ body {
   .btn-dl { padding: 6px 12px; font-size: 12px; }
 
   .nav-links { display: none; }
+
+  /* Show mobile donate button */
+  .nav { position: relative; }
 
   .section { padding: 48px 20px; }
   .steps { grid-template-columns: 1fr; gap: 24px; }
