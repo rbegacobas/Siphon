@@ -151,6 +151,9 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
                 Save File {{ job.filesize ? `(${formatSize(job.filesize)})` : '' }}
               </a>
+              <a v-if="job.status === 'completed'" href="https://ko-fi.com/rbegacobas" target="_blank" rel="noopener" class="coffee-nudge">
+                Enjoying Siphon? Buy me a coffee ☕
+              </a>
               <p v-if="job.status === 'failed'" class="error-text" style="margin-top: 8px;">
                 {{ job.message }}
               </p>
@@ -218,6 +221,9 @@
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
                 Save File {{ job.filesize ? `(${formatSize(job.filesize)})` : '' }}
+              </a>
+              <a v-if="job.status === 'completed'" href="https://ko-fi.com/rbegacobas" target="_blank" rel="noopener" class="coffee-nudge">
+                Enjoying Siphon? Buy me a coffee ☕
               </a>
               <p v-if="job.status === 'failed'" class="error-text" style="margin-top: 8px;">
                 {{ job.message }}
@@ -301,6 +307,8 @@
     <!-- Footer -->
     <footer class="footer">
       <p>Built with care. No tracking. No ads.</p>
+      <span class="footer-sep">·</span>
+      <a href="https://ko-fi.com/rbegacobas" target="_blank" rel="noopener" class="footer-coffee">Support ☕</a>
     </footer>
   </div>
 </template>
@@ -1149,10 +1157,46 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
+  gap: 0;
   padding: 20px 48px;
   font-size: 12px;
   color: var(--text-tertiary);
   border-top: 1px solid var(--border);
+}
+
+.footer-sep {
+  margin: 0 8px;
+  color: var(--border);
+}
+
+.footer-coffee {
+  color: var(--text-tertiary);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.footer-coffee:hover {
+  color: var(--accent);
+}
+
+/* Coffee nudge after download */
+.coffee-nudge {
+  display: block;
+  margin-top: 8px;
+  padding: 8px 12px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  transition: all 0.15s;
+}
+
+.coffee-nudge:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-light);
 }
 
 /* Menu toggle (hidden on desktop) */
