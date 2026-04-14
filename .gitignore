@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.env
+cookies.txt
+secrets/
+*.mp4
+*.mp3
+*.webm
+*.m4a
+*.mkv
+node_modules/
+.vite/
+downloads/
+.DS_Store

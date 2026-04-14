@@ -1,0 +1,69 @@
+services:
+  # Redis - Message Broker & Result Backend
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # FastAPI Backend
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DOWNLOAD_DIR=/tmp/ytdownloads
+      - YTDLP_COOKIES_FILE=/run/secrets/yt_cookies
+    volumes:
+      - downloads:/tmp/ytdownloads
+    secrets:
+      - yt_cookies
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Celery Worker
+  worker:
+    build: ./backend
+    command: celery -A app.workers.celery_app worker --loglevel=info --concurrency=3
+    env_file:
+      - .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DOWNLOAD_DIR=/tmp/ytdownloads
+      - YTDLP_COOKIES_FILE=/run/secrets/yt_cookies
+    volumes:
+      - downloads:/tmp/ytdownloads
+    secrets:
+      - yt_cookies
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Vue Frontend (Nginx)
+  frontend:
+    build: ./frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+secrets:
+  yt_cookies:
+    file: ./secrets/yt_cookies.txt
+
+volumes:
+  redis_data:
+  downloads:
