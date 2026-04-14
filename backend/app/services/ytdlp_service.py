@@ -19,10 +19,14 @@ def _ensure_writable_cookies() -> str | None:
     src = settings.ytdlp_cookies_file
     if not src or not os.path.isfile(src):
         return None
-    # Copy only if source is newer or dest doesn't exist
-    if not os.path.isfile(_WRITABLE_COOKIES) or (
-        os.path.getmtime(src) > os.path.getmtime(_WRITABLE_COOKIES)
-    ):
+    # Always copy if dest doesn't exist OR source differs (size or mtime)
+    needs_copy = not os.path.isfile(_WRITABLE_COOKIES)
+    if not needs_copy:
+        src_stat = os.stat(src)
+        dst_stat = os.stat(_WRITABLE_COOKIES)
+        needs_copy = (src_stat.st_size != dst_stat.st_size
+                      or src_stat.st_mtime != dst_stat.st_mtime)
+    if needs_copy:
         shutil.copy2(src, _WRITABLE_COOKIES)
         os.chmod(_WRITABLE_COOKIES, 0o600)
     return _WRITABLE_COOKIES
