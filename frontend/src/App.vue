@@ -1,163 +1,190 @@
 <template>
   <div class="app">
-    <header>
-      <h1>📥 YouTube Downloader</h1>
-      <p class="subtitle">Descarga video y audio en la mejor calidad</p>
-    </header>
+    <!-- Navigation -->
+    <nav class="nav">
+      <span class="logo">Siphon</span>
+      <div class="nav-links">
+        <a href="#how" class="nav-link">How it Works</a>
+        <a href="#faq" class="nav-link">FAQ</a>
+        <a href="#about" class="nav-link">About</a>
+      </div>
+    </nav>
 
-    <main>
-      <!-- Step 1: URL Input -->
-      <section class="url-section">
-        <div class="input-group">
-          <input
-            v-model="url"
-            type="url"
-            placeholder="https://www.youtube.com/watch?v=..."
-            :disabled="loading"
-            @keyup.enter="handleExtract"
-          />
-          <button @click="handleExtract" :disabled="loading || !url.trim()" class="btn-primary">
-            {{ loading ? 'Analizando...' : 'Analizar' }}
-          </button>
-        </div>
-        <p v-if="error" class="error">{{ error }}</p>
-      </section>
+    <!-- Hero / Home View (no metadata yet) -->
+    <main v-if="!metadata" class="hero">
+      <h1 class="heading">Download YouTube Videos</h1>
+      <p class="subheading">Paste a YouTube URL to get started. Fast, free, and no ads.</p>
 
-      <!-- Step 2: Video Info & Format Selection -->
-      <section v-if="metadata" class="metadata-section">
-        <div class="video-info">
-          <img :src="metadata.thumbnail" :alt="metadata.title" class="thumbnail" />
-          <div class="info">
-            <h2>{{ metadata.title }}</h2>
-            <p class="channel">{{ metadata.channel }}</p>
-            <p class="duration">{{ formatDuration(metadata.duration) }}</p>
-          </div>
-        </div>
+      <div class="input-bar">
+        <svg class="play-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FF0000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+        <input
+          v-model="url"
+          type="url"
+          placeholder="Paste YouTube URL here..."
+          :disabled="loading"
+          @keyup.enter="handleExtract"
+        />
+        <button @click="handleExtract" :disabled="loading || !url.trim()" class="btn-process">
+          {{ loading ? 'Processing...' : 'Process Video' }}
+        </button>
+      </div>
 
-        <!-- Tab: Video / Audio -->
-        <div class="tabs">
-          <button
-            :class="{ active: tab === 'video' }"
-            @click="tab = 'video'"
-          >🎬 Video</button>
-          <button
-            :class="{ active: tab === 'audio' }"
-            @click="tab = 'audio'"
-          >🎵 Audio</button>
-        </div>
-
-        <!-- Video Formats -->
-        <div v-if="tab === 'video'" class="formats">
-          <h3>Calidad de video</h3>
-          <div class="format-list">
-            <label
-              v-for="f in metadata.video_formats"
-              :key="f.format_id"
-              class="format-option"
-              :class="{ selected: selectedVideo === f.format_id }"
-            >
-              <input type="radio" v-model="selectedVideo" :value="f.format_id" />
-              <span class="label">{{ f.label }}</span>
-              <span v-if="f.filesize" class="size">{{ formatSize(f.filesize) }}</span>
-            </label>
-          </div>
-
-          <h3>Pista de audio</h3>
-          <div class="format-list">
-            <label
-              v-for="f in metadata.audio_formats"
-              :key="f.format_id"
-              class="format-option"
-              :class="{ selected: selectedAudioForVideo === f.format_id }"
-            >
-              <input type="radio" v-model="selectedAudioForVideo" :value="f.format_id" />
-              <span class="label">{{ f.label }}</span>
-              <span v-if="f.filesize" class="size">{{ formatSize(f.filesize) }}</span>
-            </label>
-          </div>
-
-          <div class="output-format">
-            <label>Formato de salida:</label>
-            <select v-model="videoOutputFormat">
-              <option value="mp4">MP4</option>
-              <option value="mkv">MKV</option>
-              <option value="webm">WebM</option>
-            </select>
-          </div>
-
-          <button
-            @click="handleDownload('video')"
-            :disabled="!selectedVideo || !selectedAudioForVideo || downloading"
-            class="btn-download"
-          >
-            ⬇️ Descargar Video
-          </button>
-        </div>
-
-        <!-- Audio Formats -->
-        <div v-if="tab === 'audio'" class="formats">
-          <h3>Calidad de audio</h3>
-          <div class="format-list">
-            <label
-              v-for="f in metadata.audio_formats"
-              :key="f.format_id"
-              class="format-option"
-              :class="{ selected: selectedAudio === f.format_id }"
-            >
-              <input type="radio" v-model="selectedAudio" :value="f.format_id" />
-              <span class="label">{{ f.label }}</span>
-              <span v-if="f.filesize" class="size">{{ formatSize(f.filesize) }}</span>
-            </label>
-          </div>
-
-          <div class="output-format">
-            <label>Convertir a:</label>
-            <select v-model="audioOutputFormat">
-              <option value="mp3">MP3</option>
-              <option value="m4a">M4A</option>
-              <option value="opus">Opus</option>
-              <option value="flac">FLAC</option>
-            </select>
-          </div>
-
-          <button
-            @click="handleDownload('audio')"
-            :disabled="!selectedAudio || downloading"
-            class="btn-download"
-          >
-            ⬇️ Descargar Audio
-          </button>
-        </div>
-      </section>
-
-      <!-- Step 3: Download Progress -->
-      <section v-if="job" class="progress-section">
-        <div class="progress-card" :class="job.status">
-          <div class="progress-header">
-            <span class="status-badge">{{ statusLabel(job.status) }}</span>
-            <span v-if="job.speed" class="speed">{{ job.speed }}</span>
-            <span v-if="job.eta" class="eta">ETA: {{ job.eta }}</span>
-          </div>
-          <div class="progress-bar-container">
-            <div class="progress-bar" :style="{ width: job.progress + '%' }"></div>
-          </div>
-          <p class="progress-text">{{ job.message || 'Procesando...' }}</p>
-
-          <!-- Download Link -->
-          <a
-            v-if="job.status === 'completed'"
-            :href="downloadUrl"
-            class="btn-download-file"
-            download
-          >
-            📁 Descargar archivo {{ job.filename ? `(${formatSize(job.filesize)})` : '' }}
-          </a>
-        </div>
-      </section>
+      <p class="helper-text">Supports youtube.com and youtu.be links</p>
+      <p v-if="error" class="error-text">{{ error }}</p>
     </main>
 
-    <footer>
-      <p>Powered by yt-dlp + FFmpeg + FastAPI + Vue 3</p>
+    <!-- Discovery / Download View -->
+    <main v-else class="content">
+      <!-- URL Input Bar (compact) -->
+      <div class="input-bar compact">
+        <svg class="play-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF0000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+        <input
+          v-model="url"
+          type="url"
+          :disabled="loading"
+          @keyup.enter="handleExtract"
+        />
+        <button @click="handleExtract" :disabled="loading || !url.trim()" class="btn-process">
+          {{ loading ? 'Processing...' : 'Process Video' }}
+        </button>
+      </div>
+
+      <p v-if="error" class="error-text">{{ error }}</p>
+
+      <!-- Media Preview Card -->
+      <div class="media-card">
+        <div class="thumb-wrapper">
+          <img :src="metadata.thumbnail" :alt="metadata.title" class="thumb" />
+          <span class="duration-badge">{{ formatDuration(metadata.duration) }}</span>
+        </div>
+        <div class="video-info">
+          <h2 class="video-title">{{ metadata.title }}</h2>
+          <p class="channel-name">{{ metadata.channel }}</p>
+          <div class="meta-row">
+            <span v-if="metadata.view_count">{{ formatViews(metadata.view_count) }} views</span>
+            <span v-if="metadata.view_count && metadata.upload_date" class="dot">·</span>
+            <span v-if="metadata.upload_date">{{ formatDate(metadata.upload_date) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Format Section -->
+      <div class="format-section">
+        <!-- Tabs -->
+        <div class="tabs">
+          <button :class="['tab', { active: tab === 'video' }]" @click="tab = 'video'">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect width="15" height="14" x="1" y="5" rx="2" ry="2"/></svg>
+            Video
+          </button>
+          <button :class="['tab', { active: tab === 'audio' }]" @click="tab = 'audio'">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+            Audio Only
+          </button>
+        </div>
+
+        <!-- Video Formats Table -->
+        <div v-if="tab === 'video'">
+          <div class="list-header">
+            <span class="col-quality">Quality</span>
+            <span class="col-format">Format</span>
+            <span class="col-size">File Size</span>
+            <span class="col-action"></span>
+          </div>
+          <div
+            v-for="(f, idx) in metadata.video_formats"
+            :key="f.format_id"
+            class="format-row"
+          >
+            <div class="col-quality">
+              <span :class="['quality-badge', { 'badge-accent': idx === 0 }]">
+                {{ extractRes(f.label) }}
+              </span>
+              <span v-if="idx === 0" class="best-badge">BEST</span>
+            </div>
+            <span class="col-format">{{ (f.ext || 'mp4').toUpperCase() }}</span>
+            <span class="col-size">{{ f.filesize ? '~' + formatSize(f.filesize) : '—' }}</span>
+            <div class="col-action">
+              <button
+                :class="['btn-dl', { primary: idx === 0 }]"
+                :disabled="downloading"
+                @click="handleVideoDownload(f)"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                Download
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Audio Formats Table -->
+        <div v-if="tab === 'audio'">
+          <div class="list-header">
+            <span class="col-quality">Quality</span>
+            <span class="col-format">Format</span>
+            <span class="col-size">File Size</span>
+            <span class="col-action"></span>
+          </div>
+          <div
+            v-for="(f, idx) in metadata.audio_formats"
+            :key="f.format_id"
+            class="format-row"
+          >
+            <div class="col-quality">
+              <span :class="['quality-badge', { 'badge-accent': idx === 0 }]">
+                {{ f.abr ? Math.round(f.abr) + 'kbps' : f.ext?.toUpperCase() }}
+              </span>
+              <span v-if="idx === 0" class="best-badge">BEST</span>
+            </div>
+            <span class="col-format">{{ (f.ext || 'm4a').toUpperCase() }}</span>
+            <span class="col-size">{{ f.filesize ? '~' + formatSize(f.filesize) : '—' }}</span>
+            <div class="col-action">
+              <button
+                :class="['btn-dl', { primary: idx === 0 }]"
+                :disabled="downloading"
+                @click="handleAudioDownload(f)"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                Download
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Download Progress -->
+      <div v-if="job" class="progress-section">
+        <div class="progress-label">
+          <span class="prog-text">{{ job.message || 'Processing...' }}</span>
+          <span class="prog-pct">{{ Math.round(job.progress) }}%</span>
+        </div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" :style="{ width: job.progress + '%' }"></div>
+        </div>
+        <div v-if="job.speed || job.eta" class="progress-meta">
+          <span v-if="job.speed">{{ job.speed }}</span>
+          <span v-if="job.eta">ETA: {{ job.eta }}</span>
+        </div>
+
+        <!-- Download link when complete -->
+        <a
+          v-if="job.status === 'completed'"
+          :href="downloadUrl"
+          class="btn-download-ready"
+          download
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+          Save File {{ job.filesize ? `(${formatSize(job.filesize)})` : '' }}
+        </a>
+
+        <p v-if="job.status === 'failed'" class="error-text" style="margin-top: 8px;">
+          {{ job.message }}
+        </p>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>Built with care. No tracking. No ads.</p>
     </footer>
   </div>
 </template>
@@ -175,16 +202,6 @@ const metadata = ref(null)
 const tab = ref('video')
 const downloading = ref(false)
 
-// Video selections
-const selectedVideo = ref(null)
-const selectedAudioForVideo = ref(null)
-const videoOutputFormat = ref('mp4')
-
-// Audio selections
-const selectedAudio = ref(null)
-const audioOutputFormat = ref('mp3')
-
-// Job tracking
 const job = ref(null)
 const downloadUrl = ref('')
 let ws = null
@@ -195,21 +212,9 @@ async function handleExtract() {
   metadata.value = null
   job.value = null
   loading.value = true
-  selectedVideo.value = null
-  selectedAudioForVideo.value = null
-  selectedAudio.value = null
 
   try {
     metadata.value = await extractMetadata(url.value.trim())
-
-    // Auto-select best options
-    if (metadata.value.video_formats.length) {
-      selectedVideo.value = metadata.value.video_formats[0].format_id
-    }
-    if (metadata.value.audio_formats.length) {
-      selectedAudioForVideo.value = metadata.value.audio_formats[0].format_id
-      selectedAudio.value = metadata.value.audio_formats[0].format_id
-    }
   } catch (e) {
     error.value = e.message
   } finally {
@@ -217,34 +222,35 @@ async function handleExtract() {
   }
 }
 
-async function handleDownload(type) {
+function handleVideoDownload(format) {
+  const bestAudio = metadata.value.audio_formats[0]
+  doDownload({
+    url: url.value.trim(),
+    download_type: 'video',
+    format_id: format.format_id,
+    audio_format_id: bestAudio?.format_id,
+    output_format: 'mp4',
+  })
+}
+
+function handleAudioDownload(format) {
+  doDownload({
+    url: url.value.trim(),
+    download_type: 'audio',
+    format_id: format.format_id,
+    output_format: 'mp3',
+  })
+}
+
+async function doDownload(payload) {
   downloading.value = true
   error.value = ''
-
-  const payload = {
-    url: url.value.trim(),
-    download_type: type,
-  }
-
-  if (type === 'video') {
-    payload.format_id = selectedVideo.value
-    payload.audio_format_id = selectedAudioForVideo.value
-    payload.output_format = videoOutputFormat.value
-  } else {
-    payload.format_id = selectedAudio.value
-    payload.output_format = audioOutputFormat.value
-  }
+  job.value = { status: 'pending', progress: 0, message: 'Queued...' }
 
   try {
     const result = await startDownload(payload)
-    job.value = {
-      job_id: result.job_id,
-      status: 'pending',
-      progress: 0,
-      message: 'Job encolado...',
-    }
+    job.value.job_id = result.job_id
 
-    // Connect WebSocket for real-time progress
     if (ws) ws.close()
     ws = connectWebSocket(
       result.job_id,
@@ -254,433 +260,564 @@ async function handleDownload(type) {
           downloadUrl.value = getDownloadUrl(result.job_id)
           downloading.value = false
         }
-        if (data.status === 'failed') {
-          downloading.value = false
-        }
+        if (data.status === 'failed') downloading.value = false
       },
-      () => {
-        downloading.value = false
-      }
+      () => { downloading.value = false }
     )
   } catch (e) {
     error.value = e.message
     downloading.value = false
+    job.value = null
   }
 }
 
-function formatDuration(seconds) {
-  if (!seconds) return '0:00'
-  const h = Math.floor(seconds / 3600)
-  const m = Math.floor((seconds % 3600) / 60)
-  const s = seconds % 60
-  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-  return `${m}:${String(s).padStart(2, '0')}`
+function formatDuration(s) {
+  if (!s) return '0:00'
+  const h = Math.floor(s / 3600)
+  const m = Math.floor((s % 3600) / 60)
+  const sec = s % 60
+  if (h) return `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`
+  return `${m}:${String(sec).padStart(2, '0')}`
 }
 
 function formatSize(bytes) {
   if (!bytes) return ''
-  const units = ['B', 'KB', 'MB', 'GB']
-  let i = 0
-  let size = bytes
-  while (size >= 1024 && i < units.length - 1) {
-    size /= 1024
-    i++
-  }
-  return `${size.toFixed(1)} ${units[i]}`
+  const u = ['B', 'KB', 'MB', 'GB']
+  let i = 0, sz = bytes
+  while (sz >= 1024 && i < u.length - 1) { sz /= 1024; i++ }
+  return `${sz.toFixed(1)} ${u[i]}`
 }
 
-function statusLabel(status) {
-  const labels = {
-    pending: '⏳ En cola',
-    extracting: '🔍 Extrayendo',
-    downloading: '⬇️ Descargando',
-    processing: '⚙️ Procesando',
-    completed: '✅ Completado',
-    failed: '❌ Error',
-  }
-  return labels[status] || status
+function formatViews(n) {
+  if (n >= 1e9) return (n / 1e9).toFixed(1) + 'B'
+  if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M'
+  if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K'
+  return n.toString()
+}
+
+function formatDate(d) {
+  if (!d || d.length !== 8) return d
+  const y = d.slice(0, 4), m = d.slice(4, 6), day = d.slice(6, 8)
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  return `${months[parseInt(m) - 1]} ${parseInt(day)}, ${y}`
+}
+
+function extractRes(label) {
+  const m = label.match(/(\d+p\d*)/)
+  return m ? m[1] : label
 }
 </script>
 
 <style>
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+/* ============================
+   Design Tokens from diseno.pen
+   ============================ */
+:root {
+  --accent: #4F46E5;
+  --accent-hover: #4338CA;
+  --accent-light: #EEF2FF;
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #F3F4F6;
+  --bg-tertiary: #E5E7EB;
+  --border: #E5E7EB;
+  --success: #059669;
+  --success-light: #ECFDF5;
+  --text-primary: #111827;
+  --text-secondary: #6B7280;
+  --text-tertiary: #9CA3AF;
 }
 
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #0f0f0f;
-  color: #e0e0e0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   min-height: 100vh;
 }
 
 .app {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 2rem 1rem;
-}
-
-header {
-  text-align: center;
-  margin-bottom: 2rem;
-}
-
-header h1 {
-  font-size: 2rem;
-  color: #ff4444;
-  margin-bottom: 0.25rem;
-}
-
-.subtitle {
-  color: #888;
-  font-size: 0.95rem;
-}
-
-/* URL Input */
-.url-section {
-  margin-bottom: 1.5rem;
-}
-
-.input-group {
   display: flex;
-  gap: 0.5rem;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
-.input-group input {
+/* Nav */
+.nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 64px;
+  padding: 0 48px;
+}
+
+.logo {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.nav-links {
+  display: flex;
+  gap: 32px;
+  align-items: center;
+}
+
+.nav-link {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 14px;
+  transition: color 0.15s;
+}
+
+.nav-link:hover {
+  color: var(--text-primary);
+}
+
+/* Hero */
+.hero {
   flex: 1;
-  padding: 0.85rem 1rem;
-  border: 2px solid #333;
-  border-radius: 8px;
-  background: #1a1a1a;
-  color: #fff;
-  font-size: 1rem;
-  outline: none;
-  transition: border-color 0.2s;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 24px;
+  padding: 0 48px;
 }
 
-.input-group input:focus {
-  border-color: #ff4444;
+.heading {
+  font-size: 40px;
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
-.btn-primary {
-  padding: 0.85rem 1.5rem;
+.subheading {
+  font-size: 18px;
+  color: var(--text-secondary);
+}
+
+.helper-text {
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+
+.error-text {
+  font-size: 13px;
+  color: #DC2626;
+}
+
+/* Input Bar */
+.input-bar {
+  display: flex;
+  align-items: center;
+  width: 720px;
+  max-width: 100%;
+  height: 56px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0 4px 0 16px;
+  gap: 12px;
+}
+
+.input-bar.compact {
+  width: 720px;
+  height: 52px;
+}
+
+.play-icon {
+  flex-shrink: 0;
+}
+
+.input-bar input {
+  flex: 1;
   border: none;
-  border-radius: 8px;
-  background: #ff4444;
-  color: white;
-  font-size: 1rem;
+  outline: none;
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  color: var(--text-primary);
+  background: transparent;
+}
+
+.input-bar input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.btn-process {
+  height: 44px;
+  padding: 0 24px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s;
   white-space: nowrap;
+  transition: background 0.15s;
 }
 
-.btn-primary:hover:not(:disabled) {
-  background: #ff6666;
+.btn-process:hover:not(:disabled) {
+  background: var(--accent-hover);
 }
 
-.btn-primary:disabled {
+.btn-process:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.error {
-  color: #ff6b6b;
-  margin-top: 0.5rem;
-  font-size: 0.9rem;
+/* Content */
+.content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  padding: 32px 48px;
 }
 
-/* Video Info */
-.metadata-section {
-  background: #1a1a1a;
-  border-radius: 12px;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
+/* Media Preview Card */
+.media-card {
+  display: flex;
+  gap: 20px;
+  width: 720px;
+  max-width: 100%;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.thumb-wrapper {
+  position: relative;
+  flex-shrink: 0;
+  width: 240px;
+  height: 135px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.duration-badge {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(17, 24, 39, 0.9);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 4px;
 }
 
 .video-info {
   display: flex;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+  min-width: 0;
 }
 
-.thumbnail {
-  width: 200px;
-  border-radius: 8px;
-  object-fit: cover;
-  flex-shrink: 0;
+.video-title {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text-primary);
 }
 
-.info h2 {
-  font-size: 1.1rem;
-  margin-bottom: 0.5rem;
-  line-height: 1.3;
+.channel-name {
+  font-size: 13px;
+  color: var(--text-secondary);
 }
 
-.channel {
-  color: #aaa;
-  font-size: 0.9rem;
+.meta-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--text-tertiary);
 }
 
-.duration {
-  color: #888;
-  font-size: 0.85rem;
-  margin-top: 0.25rem;
+.dot { margin: 0 4px; }
+
+/* Format Section */
+.format-section {
+  width: 720px;
+  max-width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
 }
 
 /* Tabs */
 .tabs {
   display: flex;
-  gap: 0;
-  margin-bottom: 1.5rem;
-  border-bottom: 2px solid #333;
+  border-bottom: 1px solid var(--border);
 }
 
-.tabs button {
-  flex: 1;
-  padding: 0.75rem;
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
   border: none;
-  background: transparent;
-  color: #888;
-  font-size: 1rem;
+  background: none;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: var(--text-tertiary);
   cursor: pointer;
   border-bottom: 2px solid transparent;
-  margin-bottom: -2px;
-  transition: all 0.2s;
+  margin-bottom: -1px;
+  transition: all 0.15s;
 }
 
-.tabs button.active {
-  color: #ff4444;
-  border-bottom-color: #ff4444;
-}
-
-.tabs button:hover {
-  color: #ccc;
-}
-
-/* Formats */
-.formats h3 {
-  font-size: 0.95rem;
-  color: #aaa;
-  margin-bottom: 0.75rem;
-  margin-top: 1rem;
-}
-
-.formats h3:first-child {
-  margin-top: 0;
-}
-
-.format-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.format-option {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.6rem 0.75rem;
-  border: 1px solid #333;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.format-option:hover {
-  border-color: #555;
-  background: #222;
-}
-
-.format-option.selected {
-  border-color: #ff4444;
-  background: rgba(255, 68, 68, 0.1);
-}
-
-.format-option input[type="radio"] {
-  accent-color: #ff4444;
-}
-
-.format-option .label {
-  flex: 1;
-  font-size: 0.9rem;
-}
-
-.format-option .size {
-  color: #888;
-  font-size: 0.8rem;
-}
-
-.output-format {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-top: 1rem;
-}
-
-.output-format label {
-  color: #aaa;
-  font-size: 0.9rem;
-}
-
-.output-format select {
-  padding: 0.4rem 0.75rem;
-  border: 1px solid #333;
-  border-radius: 6px;
-  background: #222;
-  color: #fff;
-  font-size: 0.9rem;
-}
-
-.btn-download {
-  width: 100%;
-  padding: 0.85rem;
-  margin-top: 1.25rem;
-  border: none;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #ff4444, #cc0033);
-  color: white;
-  font-size: 1rem;
+.tab.active {
+  color: var(--accent);
   font-weight: 600;
+  border-bottom-color: var(--accent);
+}
+
+.tab:hover:not(.active) {
+  color: var(--text-secondary);
+}
+
+/* List Header */
+.list-header {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--bg-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/* Format Rows */
+.format-row {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.format-row:last-child {
+  border-bottom: none;
+}
+
+.col-quality {
+  width: 140px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.col-format {
+  width: 100px;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.col-size {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.col-action {
+  width: 120px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.quality-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.quality-badge.badge-accent {
+  background: var(--accent-light);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.best-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  background: var(--success-light);
+  color: var(--success);
+}
+
+/* Download Buttons */
+.btn-dl {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: all 0.15s;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
 }
 
-.btn-download:hover:not(:disabled) {
-  opacity: 0.9;
+.btn-dl:hover:not(:disabled) {
+  border-color: var(--text-tertiary);
+  color: var(--text-primary);
 }
 
-.btn-download:disabled {
+.btn-dl.primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.btn-dl.primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.btn-dl:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
 
 /* Progress */
 .progress-section {
-  margin-bottom: 1.5rem;
-}
-
-.progress-card {
-  background: #1a1a1a;
-  border-radius: 12px;
-  padding: 1.5rem;
-  border: 1px solid #333;
-}
-
-.progress-card.completed {
-  border-color: #4caf50;
-}
-
-.progress-card.failed {
-  border-color: #ff4444;
-}
-
-.progress-header {
+  width: 720px;
+  max-width: 100%;
   display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.progress-label {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 1rem;
-  margin-bottom: 1rem;
 }
 
-.status-badge {
+.prog-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.prog-pct {
+  font-size: 13px;
   font-weight: 600;
-  font-size: 0.95rem;
+  color: var(--accent);
 }
 
-.speed, .eta {
-  color: #888;
-  font-size: 0.85rem;
-  margin-left: auto;
-}
-
-.eta {
-  margin-left: 0;
-}
-
-.progress-bar-container {
+.progress-bar-bg {
   width: 100%;
-  height: 8px;
-  background: #333;
-  border-radius: 4px;
+  height: 4px;
+  background: var(--bg-tertiary);
+  border-radius: 2px;
   overflow: hidden;
 }
 
-.progress-bar {
+.progress-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, #ff4444, #ff8800);
-  border-radius: 4px;
+  background: var(--accent);
+  border-radius: 2px;
   transition: width 0.3s ease;
 }
 
-.progress-text {
-  color: #888;
-  font-size: 0.85rem;
-  margin-top: 0.5rem;
+.progress-meta {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  color: var(--text-tertiary);
 }
 
-.btn-download-file {
-  display: block;
-  text-align: center;
-  margin-top: 1rem;
-  padding: 0.85rem;
-  background: #4caf50;
-  color: white;
-  text-decoration: none;
-  border-radius: 8px;
+.btn-download-ready {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 12px 24px;
+  background: var(--success);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
   font-weight: 600;
-  font-size: 1rem;
-  transition: background 0.2s;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s;
 }
 
-.btn-download-file:hover {
-  background: #66bb6a;
+.btn-download-ready:hover {
+  background: #047857;
 }
 
 /* Footer */
-footer {
-  text-align: center;
-  color: #555;
-  font-size: 0.8rem;
-  margin-top: 3rem;
-  padding-top: 1rem;
-  border-top: 1px solid #222;
+.footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 56px;
+  padding: 0 48px;
+  font-size: 12px;
+  color: var(--text-tertiary);
 }
 
 /* Responsive */
-@media (max-width: 600px) {
-  .video-info {
-    flex-direction: column;
-  }
+@media (max-width: 800px) {
+  .nav { padding: 0 20px; }
+  .hero { padding: 0 20px; }
+  .content { padding: 24px 20px; }
+  .heading { font-size: 28px; }
+  .subheading { font-size: 16px; }
 
-  .thumbnail {
+  .input-bar {
     width: 100%;
-    max-height: 200px;
+    height: 48px;
   }
 
-  .input-group {
+  .input-bar input { font-size: 14px; }
+  .btn-process { padding: 0 16px; font-size: 13px; }
+
+  .media-card {
     flex-direction: column;
+    width: 100%;
   }
 
-  .progress-header {
-    flex-wrap: wrap;
+  .thumb-wrapper {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16/9;
   }
-}
 
-/* Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-}
+  .format-section, .progress-section {
+    width: 100%;
+  }
 
-::-webkit-scrollbar-track {
-  background: #1a1a1a;
-}
+  .col-quality { width: 100px; }
+  .col-format { width: 60px; font-size: 12px; }
+  .col-action { width: 100px; }
+  .btn-dl { padding: 6px 12px; font-size: 12px; }
 
-::-webkit-scrollbar-thumb {
-  background: #444;
-  border-radius: 3px;
+  .nav-links { display: none; }
 }
 </style>
