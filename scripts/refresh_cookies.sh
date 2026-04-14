@@ -8,7 +8,7 @@
 # ============================================================
 set -euo pipefail
 
-BROWSER="${1:-chrome}"
+BROWSER="${1:-firefox}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 SECRETS_DIR="$PROJECT_ROOT/secrets"

@@ -3,4 +3,4 @@ Allow: /
 Disallow: /api/
 Disallow: /ws/
 
-Sitemap: https://siphon.app/sitemap.xml
+Sitemap: https://siphon.site/sitemap.xml
