@@ -2,11 +2,11 @@
   <div class="app">
     <!-- Navigation -->
     <nav class="nav">
-      <span class="logo">Siphon</span>
+      <a href="#" class="logo" @click.prevent="scrollTop">Siphon</a>
       <div class="nav-links">
-        <a href="#how" class="nav-link">How it Works</a>
-        <a href="#faq" class="nav-link">FAQ</a>
-        <a href="#about" class="nav-link">About</a>
+        <a href="#how" class="nav-link" @click.prevent="scrollTo('how')">How it Works</a>
+        <a href="#faq" class="nav-link" @click.prevent="scrollTo('faq')">FAQ</a>
+        <a href="#about" class="nav-link" @click.prevent="scrollTo('about')">About</a>
       </div>
     </nav>
 
@@ -34,7 +34,7 @@
     </main>
 
     <!-- Discovery / Download View -->
-    <main v-else class="content">
+    <main v-if="metadata" class="content">
       <!-- URL Input Bar (compact) -->
       <div class="input-bar compact">
         <svg class="play-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF0000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>
@@ -182,9 +182,86 @@
       </div>
     </main>
 
+    <!-- Sections (visible when no metadata / scrolled down) -->
+    <section id="how" class="section">
+      <div class="section-inner">
+        <h2 class="section-title">How it Works</h2>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <h3>Paste a URL</h3>
+            <p>Copy any YouTube video link and paste it into the input field above.</p>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <h3>Choose a Format</h3>
+            <p>We extract all available qualities. Pick video (up to 4K) or audio only (MP3).</p>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <h3>Download</h3>
+            <p>Click download, wait for processing, and save the file directly to your device.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="faq" class="section section-alt">
+      <div class="section-inner">
+        <h2 class="section-title">Frequently Asked Questions</h2>
+        <div class="faq-list">
+          <details class="faq-item">
+            <summary>Is Siphon free to use?</summary>
+            <p>Yes. Siphon is completely free with no ads, no tracking, and no account required.</p>
+          </details>
+          <details class="faq-item">
+            <summary>What formats and qualities are supported?</summary>
+            <p>Video downloads are available from 360p up to 4K (when available) in MP4 format. Audio downloads are available in MP3 at the highest bitrate the source provides.</p>
+          </details>
+          <details class="faq-item">
+            <summary>Why does the download take a moment?</summary>
+            <p>High-quality videos require merging separate video and audio streams on the server. This takes a few seconds depending on the file size.</p>
+          </details>
+          <details class="faq-item">
+            <summary>Is there a download limit?</summary>
+            <p>To keep the service available for everyone, there is a fair-use limit per IP address. Normal usage is never affected.</p>
+          </details>
+          <details class="faq-item">
+            <summary>Do you store my downloads?</summary>
+            <p>No. Files are temporarily stored on the server for a short period to allow you to save them, then automatically deleted. We do not log URLs or keep any user data.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section id="about" class="section">
+      <div class="section-inner">
+        <h2 class="section-title">About &amp; Legal</h2>
+        <div class="about-content">
+          <p>Siphon is an independent tool built by an indie developer. It is <strong>not</strong> affiliated with, authorized, maintained, sponsored, or endorsed by YouTube, Google Inc., or any of its affiliates.</p>
+          <div class="disclaimer-box">
+            <h4>Terms of Use</h4>
+            <ul>
+              <li><strong>Personal use only.</strong> This tool is intended for personal, non-commercial, and educational purposes.</li>
+              <li><strong>Copyright compliance.</strong> You are solely responsible for ensuring you have the right or permission to download any media.</li>
+              <li><strong>Limitation of liability.</strong> The developer is not responsible for any misuse of the application or intellectual property infringement by the user.</li>
+            </ul>
+            <p class="disclaimer-accept">By pasting a URL and clicking "Process", you confirm that you accept these terms.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Footer -->
     <footer class="footer">
-      <p>Built with care. No tracking. No ads.</p>
+      <div class="footer-inner">
+        <p>Built with care. No tracking. No ads.</p>
+        <span class="footer-dot">&middot;</span>
+        <a href="https://ko-fi.com/siphon" target="_blank" rel="noopener" class="donate-link">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" x2="6" y1="1" y2="4"/><line x1="10" x2="10" y1="1" y2="4"/><line x1="14" x2="14" y1="1" y2="4"/></svg>
+          Support this project
+        </a>
+      </div>
     </footer>
   </div>
 </template>
@@ -306,6 +383,14 @@ function extractRes(label) {
   const m = label.match(/(\d+p\d*)/)
   return m ? m[1] : label
 }
+
+function scrollTo(id) {
+  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
+}
+
+function scrollTop() {
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
 </script>
 
 <style>
@@ -355,6 +440,8 @@ body {
   font-size: 20px;
   font-weight: 700;
   color: var(--text-primary);
+  text-decoration: none;
+  cursor: pointer;
 }
 
 .nav-links {
@@ -771,15 +858,206 @@ body {
   background: #047857;
 }
 
+/* Sections */
+.section {
+  padding: 80px 48px;
+}
+
+.section-alt {
+  background: var(--bg-secondary);
+}
+
+.section-inner {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.section-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 40px;
+  text-align: center;
+}
+
+/* Steps */
+.steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+}
+
+.step {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.step-num {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--accent-light);
+  color: var(--accent);
+  font-size: 16px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.step h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.step p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* FAQ */
+.faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.faq-item {
+  border-bottom: 1px solid var(--border);
+  padding: 0;
+}
+
+.faq-item:first-child {
+  border-top: 1px solid var(--border);
+}
+
+.faq-item summary {
+  padding: 16px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.faq-item summary::-webkit-details-marker { display: none; }
+
+.faq-item summary::after {
+  content: '+';
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--text-tertiary);
+  transition: transform 0.2s;
+}
+
+.faq-item[open] summary::after {
+  content: '\2212';
+}
+
+.faq-item p {
+  padding: 0 0 16px 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+/* About */
+.about-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.disclaimer-box {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 24px;
+}
+
+.disclaimer-box h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+
+.disclaimer-box ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.disclaimer-box li {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  padding-left: 16px;
+  position: relative;
+}
+
+.disclaimer-box li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  width: 4px;
+  height: 4px;
+  background: var(--text-tertiary);
+  border-radius: 50%;
+}
+
+.disclaimer-accept {
+  font-size: 12px;
+  font-style: italic;
+  color: var(--text-tertiary);
+}
+
 /* Footer */
 .footer {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 56px;
-  padding: 0 48px;
+  padding: 20px 48px;
   font-size: 12px;
   color: var(--text-tertiary);
+  border-top: 1px solid var(--border);
+}
+
+.footer-inner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.footer-dot {
+  color: var(--text-tertiary);
+}
+
+.donate-link {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-tertiary);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.donate-link:hover {
+  color: var(--accent);
 }
 
 /* Responsive */
@@ -819,5 +1097,10 @@ body {
   .btn-dl { padding: 6px 12px; font-size: 12px; }
 
   .nav-links { display: none; }
+
+  .section { padding: 48px 20px; }
+  .steps { grid-template-columns: 1fr; gap: 24px; }
+  .footer-inner { flex-direction: column; gap: 4px; }
+  .footer-dot { display: none; }
 }
 </style>
