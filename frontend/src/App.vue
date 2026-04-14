@@ -3,7 +3,7 @@
     <!-- Navigation -->
     <nav class="nav">
       <a href="#" class="logo" @click.prevent="scrollTop">Siphon</a>
-      <div class="nav-links">
+      <div class="nav-links" :class="{ open: menuOpen }">
         <a href="#how" class="nav-link" @click.prevent="scrollTo('how')">How it Works</a>
         <a href="#faq" class="nav-link" @click.prevent="scrollTo('faq')">FAQ</a>
         <a href="#about" class="nav-link" @click.prevent="scrollTo('about')">About</a>
@@ -12,6 +12,10 @@
           Donate
         </a>
       </div>
+      <button class="menu-toggle" @click="menuOpen = !menuOpen" aria-label="Menu">
+        <svg v-if="!menuOpen" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+        <svg v-else xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+      </button>
     </nav>
 
     <!-- Hero / Home View (no metadata yet) -->
@@ -99,7 +103,7 @@
             :key="f.format_id"
             class="format-row"
           >
-            <div class="col-quality">
+            <div class="col-quality" :data-meta="(f.ext || 'mp4').toUpperCase() + (f.filesize ? ' · ~' + formatSize(f.filesize) : '')">
               <span :class="['quality-badge', { 'badge-accent': idx === 0 }]">
                 {{ extractRes(f.label) }}
               </span>
@@ -133,7 +137,7 @@
             :key="f.format_id"
             class="format-row"
           >
-            <div class="col-quality">
+            <div class="col-quality" :data-meta="(f.ext || 'm4a').toUpperCase() + (f.filesize ? ' · ~' + formatSize(f.filesize) : '')">
               <span :class="['quality-badge', { 'badge-accent': idx === 0 }]">
                 {{ f.abr ? Math.round(f.abr) + 'kbps' : f.ext?.toUpperCase() }}
               </span>
@@ -275,6 +279,7 @@ const error = ref('')
 const metadata = ref(null)
 const tab = ref('video')
 const downloading = ref(false)
+const menuOpen = ref(false)
 
 const job = ref(null)
 const downloadUrl = ref('')
@@ -382,6 +387,7 @@ function extractRes(label) {
 }
 
 function scrollTo(id) {
+  menuOpen.value = false
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
 }
 
@@ -426,6 +432,7 @@ body {
 
 /* Nav */
 .nav {
+  position: relative;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1053,50 +1060,202 @@ body {
   border-top: 1px solid var(--border);
 }
 
-/* Responsive */
-@media (max-width: 800px) {
-  .nav { padding: 0 20px; }
-  .hero { padding: 0 20px; }
-  .content { padding: 24px 20px; }
-  .heading { font-size: 28px; }
-  .subheading { font-size: 16px; }
+/* Menu toggle (hidden on desktop) */
+.menu-toggle {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-primary);
+  padding: 4px;
+}
 
-  .input-bar {
-    width: 100%;
-    height: 48px;
+/* Responsive — Mobile (from diseno.pen) */
+@media (max-width: 640px) {
+  /* Nav: hamburger menu */
+  .nav {
+    padding: 0 16px;
+    height: 56px;
   }
 
-  .input-bar input { font-size: 14px; }
-  .btn-process { padding: 0 16px; font-size: 13px; }
+  .menu-toggle { display: block; }
 
+  .nav-links {
+    display: none;
+    position: absolute;
+    top: 56px;
+    left: 0;
+    right: 0;
+    background: var(--bg-primary);
+    border-bottom: 1px solid var(--border);
+    flex-direction: column;
+    padding: 12px 16px;
+    gap: 0;
+    z-index: 100;
+  }
+
+  .nav-links.open { display: flex; }
+
+  .nav-link {
+    display: block;
+    padding: 12px 0;
+    font-size: 15px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-donate {
+    margin-top: 8px;
+    justify-content: center;
+  }
+
+  /* Hero */
+  .hero {
+    padding: 0 16px;
+    gap: 12px;
+  }
+
+  .heading {
+    font-size: 28px;
+    text-align: center;
+    line-height: 1.2;
+  }
+
+  .subheading {
+    font-size: 16px;
+    text-align: center;
+    line-height: 1.5;
+  }
+
+  .helper-text { font-size: 12px; }
+
+  /* Input: stacked vertically */
+  .input-bar {
+    width: 100%;
+    flex-direction: column;
+    height: auto;
+    padding: 0;
+    border: none;
+    gap: 12px;
+    background: transparent;
+  }
+
+  .input-bar.compact {
+    width: 100%;
+    height: auto;
+  }
+
+  .input-bar .play-icon { display: none; }
+
+  .input-bar input {
+    width: 100%;
+    height: 48px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0 14px;
+    font-size: 14px;
+    background: var(--bg-primary);
+  }
+
+  .btn-process {
+    width: 100%;
+    height: 48px;
+    font-size: 15px;
+    border-radius: 6px;
+  }
+
+  /* Content */
+  .content {
+    padding: 20px 16px;
+    gap: 20px;
+  }
+
+  /* Media card: stacked */
   .media-card {
     flex-direction: column;
     width: 100%;
+    gap: 12px;
+    padding: 12px;
   }
 
   .thumb-wrapper {
     width: 100%;
-    height: auto;
-    aspect-ratio: 16/9;
+    height: 190px;
   }
 
-  .format-section, .progress-section {
+  .video-title { font-size: 15px; }
+  .channel-name { font-size: 12px; }
+  .meta-row { font-size: 11px; }
+
+  /* Format section: mobile rows */
+  .format-section {
     width: 100%;
   }
 
-  .col-quality { width: 100px; }
-  .col-format { width: 60px; font-size: 12px; }
-  .col-action { width: 100px; }
-  .btn-dl { padding: 6px 12px; font-size: 12px; }
+  .tabs {
+    display: flex;
+  }
 
-  .nav-links { display: none; }
+  .tab {
+    flex: 1;
+    justify-content: center;
+    padding: 10px 20px;
+    font-size: 13px;
+    gap: 6px;
+  }
 
-  /* Show mobile donate button */
-  .nav { position: relative; }
+  /* Hide table header on mobile */
+  .list-header { display: none; }
 
-  .section { padding: 48px 20px; }
+  /* Format rows: horizontal badge+meta on left, button on right */
+  .format-row {
+    padding: 12px;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .col-quality {
+    width: auto;
+    flex-shrink: 0;
+  }
+
+  .col-format, .col-size { display: none; }
+
+  /* Show combined meta on mobile via pseudo or inline */
+  .format-row .col-quality::after {
+    content: attr(data-meta);
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--text-secondary);
+    margin-left: 8px;
+  }
+
+  .col-action {
+    width: auto;
+  }
+
+  .btn-dl {
+    padding: 8px 16px;
+    font-size: 12px;
+    gap: 6px;
+  }
+
+  /* Progress */
+  .progress-section {
+    width: 100%;
+  }
+
+  .prog-text, .prog-pct { font-size: 12px; }
+
+  /* Sections */
+  .section { padding: 48px 16px; }
+  .section-title { font-size: 20px; margin-bottom: 28px; }
   .steps { grid-template-columns: 1fr; gap: 24px; }
-  .footer-inner { flex-direction: column; gap: 4px; }
-  .footer-dot { display: none; }
+  .disclaimer-box { padding: 16px; }
+
+  /* Footer */
+  .footer {
+    padding: 16px;
+    font-size: 11px;
+  }
 }
 </style>
