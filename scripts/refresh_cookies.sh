@@ -17,17 +17,25 @@ COOKIES_FILE="$SECRETS_DIR/yt_cookies.txt"
 mkdir -p "$SECRETS_DIR"
 
 echo "→ Exportando cookies de YouTube desde $BROWSER..."
-python3 -m yt_dlp \
-    --cookies-from-browser "$BROWSER" \
-    --cookies "$COOKIES_FILE" \
-    --skip-download \
-    "https://www.youtube.com/watch?v=dQw4w9WgXcQ" 2>&1 | tail -3
+# Lee las cookies del navegador SIN conectarse a YouTube: una petición real
+# hace que YouTube rote/borre LOGIN_INFO y SID antes de guardarlas.
+# Solo se guardan YouTube/Google; el resto (bancos, gobierno...) nunca sale de esta máquina.
+python3 - "$BROWSER" "$COOKIES_FILE" <<'PY'
+import sys
+from yt_dlp.cookies import YoutubeDLCookieJar, extract_cookies_from_browser
 
-# yt-dlp guarda TODAS las cookies del navegador (bancos, gobierno, etc.).
-# Nos quedamos solo con YouTube/Google; el resto nunca debe salir de esta máquina.
-TMP_FILE="$(mktemp)"
-awk -F'\t' '/^# Netscape/ || $1 ~ /(^|\.)(youtube\.com|google\.com)$/' "$COOKIES_FILE" > "$TMP_FILE"
-mv "$TMP_FILE" "$COOKIES_FILE"
+jar = YoutubeDLCookieJar(sys.argv[2])
+for c in extract_cookies_from_browser(sys.argv[1]):
+    d = c.domain.lstrip(".")
+    if d in ("youtube.com", "google.com") or d.endswith((".youtube.com", ".google.com")):
+        jar.set_cookie(c)
+jar.save(ignore_discard=True, ignore_expires=True)
+PY
+
+for name in LOGIN_INFO SID SAPISID; do
+    awk -F'\t' -v n="$name" '$1 ~ /youtube\.com$/ && $6 == n {f=1} END {exit !f}' "$COOKIES_FILE" \
+        || { echo "ERROR: falta $name de youtube.com. ¿Sesión iniciada en YouTube y navegador cerrado?"; exit 1; }
+done
 
 chmod 600 "$COOKIES_FILE"
 
