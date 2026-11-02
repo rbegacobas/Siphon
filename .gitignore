@@ -4,7 +4,7 @@ __pycache__/
 dist/
 build/
 .env
-cookies.txt
+cookies*.txt
 secrets/
 *.mp4
 *.mp3

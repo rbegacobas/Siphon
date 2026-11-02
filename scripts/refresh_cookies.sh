@@ -23,6 +23,12 @@ python3 -m yt_dlp \
     --skip-download \
     "https://www.youtube.com/watch?v=dQw4w9WgXcQ" 2>&1 | tail -3
 
+# yt-dlp guarda TODAS las cookies del navegador (bancos, gobierno, etc.).
+# Nos quedamos solo con YouTube/Google; el resto nunca debe salir de esta máquina.
+TMP_FILE="$(mktemp)"
+awk -F'\t' '/^# Netscape/ || $1 ~ /(^|\.)(youtube\.com|google\.com)$/' "$COOKIES_FILE" > "$TMP_FILE"
+mv "$TMP_FILE" "$COOKIES_FILE"
+
 chmod 600 "$COOKIES_FILE"
 
 echo ""
